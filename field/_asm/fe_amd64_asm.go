@@ -21,7 +21,8 @@ func main() {
 	Package("filippo.io/edwards25519/field")
 	ConstraintExpr("amd64,gc,!purego")
 	feMul()
-	feSquare()
+	feSquare(1)
+	feSquare(2)
 	Generate()
 }
 
@@ -39,9 +40,17 @@ type uint128 struct {
 
 func (c uint128) String() string { return c.name }
 
-func feSquare() {
-	TEXT("feSquare", NOSPLIT, "func(out, a *Element)")
-	Doc("feSquare sets out = a * a. It works like feSquareGeneric.")
+func feSquare(mul int) {
+	switch mul {
+	case 1:
+		TEXT("feSquare", NOSPLIT, "func(out, a *Element)")
+		Doc("feSquare sets out = a * a. It works like feSquareGeneric.")
+	case 2:
+		TEXT("feSquare2", NOSPLIT, "func(out, a *Element)")
+		Doc("feSquare2 sets out = 2 * a * a. It works like feSquare2Generic.")
+	default:
+		panic("unsupported mul")
+	}
 	Pragma("noescape")
 
 	a := Dereference(Param("a"))
@@ -80,6 +89,19 @@ func feSquare() {
 	mul64(r4, 2, l0, l4)
 	addMul64(r4, 2, l1, l3)
 	addMul64(r4, 1, l2, l2)
+
+	switch mul {
+	case 1:
+	case 2:
+		Comment("Double the result")
+		double128(r0)
+		double128(r1)
+		double128(r2)
+		double128(r3)
+		double128(r4)
+	default:
+		panic("unsupported mul")
+	}
 
 	Comment("First reduction chain")
 	maskLow51Bits := GP64()
@@ -265,6 +287,12 @@ func addMul64(r uint128, i uint64, aX, bX namedComponent) {
 	MULQ(mustAddr(bX)) // RDX, RAX = RAX * bX
 	ADDQ(RAX, r.lo)
 	ADCQ(RDX, r.hi)
+}
+
+// double128 sets r to 2 * r.
+func double128(r uint128) {
+	ADDQ(r.lo, r.lo)
+	ADCQ(r.hi, r.hi)
 }
 
 // shiftRightBy51 returns r >> 51 and r.lo.

@@ -310,6 +310,12 @@ func (v *Element) Square(x *Element) *Element {
 	return v
 }
 
+// Square2 sets v = 2 * x * x, and returns v.
+func (v *Element) Square2(x *Element) *Element {
+	feSquare2(v, x)
+	return v
+}
+
 // Mult32 sets v = x * y, and returns v.
 func (v *Element) Mult32(x *Element, y uint32) *Element {
 	x0lo, x0hi := mul51(x.l0, y)

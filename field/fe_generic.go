@@ -26,6 +26,13 @@ func addMul64(v uint128, a, b uint64) uint128 {
 	return uint128{lo, hi}
 }
 
+// double128 returns v + a * b.
+func double128(v uint128) uint128 {
+	c, lo := bits.Add64(v.lo, v.lo, 0)
+	_, hi := bits.Add64(v.hi, v.hi, c)
+	return uint128{lo, hi}
+}
+
 // shiftRightBy51 returns a >> 51. a is assumed to be at most 115 bits.
 func shiftRightBy51(a uint128) uint64 {
 	return (a.hi << (64 - 51)) | (a.lo >> 51)
@@ -228,6 +235,95 @@ func feSquareGeneric(v, a *Element) {
 	r4 := mul64(l0_2, l4)
 	r4 = addMul64(r4, l1_2, l3)
 	r4 = addMul64(r4, l2, l2)
+
+	c0 := shiftRightBy51(r0)
+	c1 := shiftRightBy51(r1)
+	c2 := shiftRightBy51(r2)
+	c3 := shiftRightBy51(r3)
+	c4 := shiftRightBy51(r4)
+
+	rr0 := r0.lo&maskLow51Bits + c4*19
+	rr1 := r1.lo&maskLow51Bits + c0
+	rr2 := r2.lo&maskLow51Bits + c1
+	rr3 := r3.lo&maskLow51Bits + c2
+	rr4 := r4.lo&maskLow51Bits + c3
+
+	*v = Element{rr0, rr1, rr2, rr3, rr4}
+	v.carryPropagate()
+}
+
+func feSquare2Generic(v, a *Element) {
+	l0 := a.l0
+	l1 := a.l1
+	l2 := a.l2
+	l3 := a.l3
+	l4 := a.l4
+
+	// Squaring works precisely like multiplication above, but thanks to its
+	// symmetry we get to group a few terms together.
+	//
+	//                          l4   l3   l2   l1   l0  x
+	//                          l4   l3   l2   l1   l0  =
+	//                         ------------------------
+	//                        l4l0 l3l0 l2l0 l1l0 l0l0  +
+	//                   l4l1 l3l1 l2l1 l1l1 l0l1       +
+	//              l4l2 l3l2 l2l2 l1l2 l0l2            +
+	//         l4l3 l3l3 l2l3 l1l3 l0l3                 +
+	//    l4l4 l3l4 l2l4 l1l4 l0l4                      =
+	//   ----------------------------------------------
+	//      r8   r7   r6   r5   r4   r3   r2   r1   r0
+	//
+	//            l4l0    l3l0    l2l0    l1l0    l0l0  +
+	//            l3l1    l2l1    l1l1    l0l1 19×l4l1  +
+	//            l2l2    l1l2    l0l2 19×l4l2 19×l3l2  +
+	//            l1l3    l0l3 19×l4l3 19×l3l3 19×l2l3  +
+	//            l0l4 19×l4l4 19×l3l4 19×l2l4 19×l1l4  =
+	//           --------------------------------------
+	//              r4      r3      r2      r1      r0
+	//
+	// With precomputed 2×, 19×, and 2×19× terms, we can compute each limb with
+	// only three Mul64 and four Add64, instead of five and eight.
+
+	l0_2 := l0 * 2
+	l1_2 := l1 * 2
+
+	l1_38 := l1 * 38
+	l2_38 := l2 * 38
+	l3_38 := l3 * 38
+
+	l3_19 := l3 * 19
+	l4_19 := l4 * 19
+
+	// r0 = l0×l0 + 19×(l1×l4 + l2×l3 + l3×l2 + l4×l1) = l0×l0 + 19×2×(l1×l4 + l2×l3)
+	r0 := mul64(l0, l0)
+	r0 = addMul64(r0, l1_38, l4)
+	r0 = addMul64(r0, l2_38, l3)
+
+	// r1 = l0×l1 + l1×l0 + 19×(l2×l4 + l3×l3 + l4×l2) = 2×l0×l1 + 19×2×l2×l4 + 19×l3×l3
+	r1 := mul64(l0_2, l1)
+	r1 = addMul64(r1, l2_38, l4)
+	r1 = addMul64(r1, l3_19, l3)
+
+	// r2 = l0×l2 + l1×l1 + l2×l0 + 19×(l3×l4 + l4×l3) = 2×l0×l2 + l1×l1 + 19×2×l3×l4
+	r2 := mul64(l0_2, l2)
+	r2 = addMul64(r2, l1, l1)
+	r2 = addMul64(r2, l3_38, l4)
+
+	// r3 = l0×l3 + l1×l2 + l2×l1 + l3×l0 + 19×l4×l4 = 2×l0×l3 + 2×l1×l2 + 19×l4×l4
+	r3 := mul64(l0_2, l3)
+	r3 = addMul64(r3, l1_2, l2)
+	r3 = addMul64(r3, l4_19, l4)
+
+	// r4 = l0×l4 + l1×l3 + l2×l2 + l3×l1 + l4×l0 = 2×l0×l4 + 2×l1×l3 + l2×l2
+	r4 := mul64(l0_2, l4)
+	r4 = addMul64(r4, l1_2, l3)
+	r4 = addMul64(r4, l2, l2)
+
+	r0 = double128(r0)
+	r1 = double128(r1)
+	r2 = double128(r2)
+	r3 = double128(r3)
+	r4 = double128(r4)
 
 	c0 := shiftRightBy51(r0)
 	c1 := shiftRightBy51(r1)

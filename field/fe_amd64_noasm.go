@@ -10,3 +10,5 @@ package field
 func feMul(v, x, y *Element) { feMulGeneric(v, x, y) }
 
 func feSquare(v, x *Element) { feSquareGeneric(v, x) }
+
+func feSquare2(v, x *Element) { feSquare2Generic(v, x) }

@@ -355,8 +355,7 @@ func (v *projP1xP1) Double(p *projP2) *projP1xP1 {
 
 	XX.Square(&p.X)
 	YY.Square(&p.Y)
-	ZZ2.Square(&p.Z)
-	ZZ2.Add(&ZZ2, &ZZ2)
+	ZZ2.Square2(&p.Z)
 	XplusYsq.Add(&p.X, &p.Y)
 	XplusYsq.Square(&XplusYsq)
 
