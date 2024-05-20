@@ -10,3 +10,5 @@ package field
 func (v *Element) carryPropagate() *Element {
 	return v.carryPropagateGeneric()
 }
+
+func feSquare(v, x *Element) { feSquareGeneric(v, x) }
