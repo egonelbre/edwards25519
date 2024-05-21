@@ -46,8 +46,8 @@ TEXT ·carryPropagate(SB), NOFRAME|NOSPLIT, $0-8
 
 // func feMul(out *Element, a *Element, b *Element)
 TEXT ·feMul(SB), NOSPLIT, $0-24
-	MOVD  a+0(FP), R1
-	MOVD  b+0(FP), R2
+	MOVD  a+8(FP), R1
+	MOVD  b+16(FP), R2
 
 	LDP   (R1), (R12, R10)
 	LDP   16(R1), (R7, R4)
