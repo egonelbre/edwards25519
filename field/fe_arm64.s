@@ -42,9 +42,7 @@ TEXT ·carryPropagate(SB), NOFRAME|NOSPLIT, $0-8
 
 	RET
 
-/*
-
-TODO: do not use R18, R27, R28, R29, R30
+// Notes: do not use R18, R27, R28, R29, R30
 
 // func feMul(out *Element, a *Element, b *Element)
 TEXT ·feMul(SB), NOSPLIT, $0-24
@@ -92,11 +90,11 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	MUL   R12, R16, R20
 	UMULH R6, R8, R8
 	ADDS  R14, R3, R3
-	UMULH R13, R0, R30
+	UMULH R13, R0, R23
 	EXTR  $51, R1, R2, R14
 	MUL   R11, R10, R5
 	UMULH R11, R10, R19
-	ADC   R8, R30, R30
+	ADC   R8, R23, R23
 	UMULH R12, R16, R2
 	ADDS  R20, R5, R5
 	MUL   R15, R17, R20
@@ -105,7 +103,7 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	ADC   R2, R19, R1
 	ADDS  R5, R3, R3
 	MUL   R6, R0, R19
-	ADC   R1, R30, R2
+	ADC   R1, R23, R2
 	MUL   R13, R17, R5
 	ADDS  R20, R3, R3
 	UMULH R13, R17, R1
@@ -113,16 +111,16 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	UMULH R6, R0, R0
 	MUL   R12, R15, R20
 	ADDS  R19, R5, R5
-	MUL   R16, R10, R30
+	MUL   R16, R10, R23
 	EXTR  $51, R3, R2, R19
 	ADC   R0, R1, R0
 	UMULH R12, R15, R2
 	UMULH R16, R10, R1
-	ADDS  R20, R30, R30
+	ADDS  R20, R23, R23
 	MUL   R11, R7, R20
 	AND   $0x7ffffffffffff, R3, R3
 	ADC   R2, R1, R1
-	ADDS  R30, R5, R5
+	ADDS  R23, R5, R5
 	UMULH R11, R7, R21
 	ADC   R1, R0, R0
 	MUL   R11, R4, R2
@@ -131,12 +129,12 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	ADC   R21, R0, R0
 	UMULH R16, R7, R20
 	ADD   R14, R3, R3
-	UMULH R11, R4, R30
+	UMULH R11, R4, R23
 	ADDS  R1, R2, R2
 	MUL   R12, R13, R14
 	EXTR  $51, R5, R0, R0
 	MUL   R15, R10, R1
-	ADC   R20, R30, R30
+	ADC   R20, R23, R23
 	UMULH R12, R13, R22
 	AND   $0x7ffffffffffff, R5, R5
 	UMULH R15, R10, R20
@@ -147,12 +145,12 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	ADC   R22, R20, R19
 	ADDS  R1, R2, R2
 	MUL   R15, R7, R20
-	ADC   R19, R30, R30
+	ADC   R19, R23, R23
 	MUL   R16, R4, R5
 	ADDS  R21, R2, R2
 	UMULH R16, R4, R1
 	UMULH R15, R7, R7
-	ADC   R17, R30, R15
+	ADC   R17, R23, R15
 	MUL   R13, R10, R16
 	ADDS  R20, R5, R5
 	MUL   R12, R6, R17
@@ -166,7 +164,7 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	ADC   R6, R4, R4
 	UMULH R11, R9, R9
 	ADDS  R16, R5, R5
-	ADD   R18, R2, R2
+	ADD   R0, R2, R2
 	ADC   R4, R1, R1
 	ADDS  R10, R5, R5
 	ADC   R9, R1, R1
@@ -197,7 +195,6 @@ TEXT ·feMul(SB), NOSPLIT, $0-24
 	STP   (R3, R14), 16(R0)
 	MOVD  R2, 32(R0)
 	RET
-*/
 
 // func feSquare(out *Element, a *Element)
 TEXT ·feSquare(SB), NOSPLIT, $0-16
