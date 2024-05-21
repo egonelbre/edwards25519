@@ -1,7 +1,9 @@
 #include <stdint.h>
 
-typedef uint64_t uint64;
-typedef __uint128_t uint128;
+typedef __uint128_t uint128_t;
+
+#define FORCE_INLINE __attribute__((always_inline)) inline
+#define FORCE_NOINLINE __attribute__((noinline))
 
 // Element represents an element of the field GF(2^255-19). Note that this
 // is not a cryptographically secure group, and should only be used to interact
@@ -16,39 +18,39 @@ typedef struct Element {
 	//     t.l0 + t.l1*2^51 + t.l2*2^102 + t.l3*2^153 + t.l4*2^204
 	//
 	// Between operations, all limbs are expected to be lower than 2^52.
-	uint64 l0;
-	uint64 l1;
-	uint64 l2;
-	uint64 l3;
-	uint64 l4;
+	uint64_t l0;
+	uint64_t l1;
+	uint64_t l2;
+	uint64_t l3;
+	uint64_t l4;
 } Element;
 
-// const uint64 maskLow51Bits = ((uint64)(1) << 51) - 1;
-const uint64 maskLow51Bits = 2251799813685247ll;
+// const uint64_t maskLow51Bits = ((uint64_t)(1) << 51) - 1;
+const uint64_t maskLow51Bits = 2251799813685247ll;
 
 // mul64 returns a * b.
-uint128 mul64(uint64 a, uint64 b) {
-	return (uint128)(a) * (uint128)(b);
+uint128_t FORCE_INLINE mul64(uint64_t a, uint64_t b) {
+	return (uint128_t)(a) * (uint128_t)(b);
 }
 
 // addMul64 returns v + a * b.
-uint128 addMul64(uint128 v, uint64 a, uint64 b) {
+uint128_t FORCE_INLINE addMul64(uint128_t v, uint64_t a, uint64_t b) {
 	return v + mul64(a, b);
 }
 
 // shiftRightBy51 returns a >> 51. a is assumed to be at most 115 bits.
-uint64 shiftRightBy51(uint128 a) {
-	return (uint64)(a >> 51);
+uint64_t FORCE_INLINE shiftRightBy51(uint128_t a) {
+	return (uint64_t)(a >> 51);
 }
 
 // carryPropagateGeneric brings the limbs below 52 bits by applying the reduction
 // identity (a * 2²⁵⁵ + b = a * 19 + b) to the l4 carry.
-void carryPropagateGeneric(Element *v) {
-	uint64 c0 = v->l0 >> 51;
-	uint64 c1 = v->l1 >> 51;
-	uint64 c2 = v->l2 >> 51;
-	uint64 c3 = v->l3 >> 51;
-	uint64 c4 = v->l4 >> 51;
+void FORCE_INLINE carryPropagateGeneric(Element *v) {
+	uint64_t c0 = v->l0 >> 51;
+	uint64_t c1 = v->l1 >> 51;
+	uint64_t c2 = v->l2 >> 51;
+	uint64_t c3 = v->l3 >> 51;
+	uint64_t c4 = v->l4 >> 51;
 
 	// c4 is at most 64 - 51 = 13 bits, so c4*19 is at most 18 bits, and
 	// the final l0 will be at most 52 bits. Similarly for the rest.
@@ -60,18 +62,18 @@ void carryPropagateGeneric(Element *v) {
 }
 
 
-void feMulGeneric(Element * v, Element * a, Element * b) {
-	uint64 a0 = a->l0;
-	uint64 a1 = a->l1;
-	uint64 a2 = a->l2;
-	uint64 a3 = a->l3;
-	uint64 a4 = a->l4;
+void FORCE_NOINLINE feMulGeneric(Element * v, Element * a, Element * b) {
+	uint64_t a0 = a->l0;
+	uint64_t a1 = a->l1;
+	uint64_t a2 = a->l2;
+	uint64_t a3 = a->l3;
+	uint64_t a4 = a->l4;
 
-	uint64 b0 = b->l0;
-	uint64 b1 = b->l1;
-	uint64 b2 = b->l2;
-	uint64 b3 = b->l3;
-	uint64 b4 = b->l4;
+	uint64_t b0 = b->l0;
+	uint64_t b1 = b->l1;
+	uint64_t b2 = b->l2;
+	uint64_t b3 = b->l3;
+	uint64_t b4 = b->l4;
 
 	// Limb multiplication works like pen-and-paper columnar multiplication, but
 	// with 51-bit limbs instead of digits.
@@ -105,41 +107,41 @@ void feMulGeneric(Element * v, Element * a, Element * b) {
 	//
 	// Finally we add up the columns into wide, overlapping limbs.
 
-	uint64 a1_19 = a1 * 19;
-	uint64 a2_19 = a2 * 19;
-	uint64 a3_19 = a3 * 19;
-	uint64 a4_19 = a4 * 19;
+	uint64_t a1_19 = a1 * 19;
+	uint64_t a2_19 = a2 * 19;
+	uint64_t a3_19 = a3 * 19;
+	uint64_t a4_19 = a4 * 19;
 
 	// r0 = a0×b0 + 19×(a1×b4 + a2×b3 + a3×b2 + a4×b1)
-	uint128 r0 = mul64(a0, b0);
+	uint128_t r0 = mul64(a0, b0);
 	r0 = addMul64(r0, a1_19, b4);
 	r0 = addMul64(r0, a2_19, b3);
 	r0 = addMul64(r0, a3_19, b2);
 	r0 = addMul64(r0, a4_19, b1);
 
 	// r1 = a0×b1 + a1×b0 + 19×(a2×b4 + a3×b3 + a4×b2)
-	uint128 r1 = mul64(a0, b1);
+	uint128_t r1 = mul64(a0, b1);
 	r1 = addMul64(r1, a1, b0);
 	r1 = addMul64(r1, a2_19, b4);
 	r1 = addMul64(r1, a3_19, b3);
 	r1 = addMul64(r1, a4_19, b2);
 
 	// r2 = a0×b2 + a1×b1 + a2×b0 + 19×(a3×b4 + a4×b3)
-	uint128 r2 = mul64(a0, b2);
+	uint128_t r2 = mul64(a0, b2);
 	r2 = addMul64(r2, a1, b1);
 	r2 = addMul64(r2, a2, b0);
 	r2 = addMul64(r2, a3_19, b4);
 	r2 = addMul64(r2, a4_19, b3);
 
 	// r3 = a0×b3 + a1×b2 + a2×b1 + a3×b0 + 19×a4×b4
-	uint128 r3 = mul64(a0, b3);
+	uint128_t r3 = mul64(a0, b3);
 	r3 = addMul64(r3, a1, b2);
 	r3 = addMul64(r3, a2, b1);
 	r3 = addMul64(r3, a3, b0);
 	r3 = addMul64(r3, a4_19, b4);
 
 	// r4 = a0×b4 + a1×b3 + a2×b2 + a3×b1 + a4×b0
-	uint128 r4 = mul64(a0, b4);
+	uint128_t r4 = mul64(a0, b4);
 	r4 = addMul64(r4, a1, b3);
 	r4 = addMul64(r4, a2, b2);
 	r4 = addMul64(r4, a3, b1);
@@ -155,7 +157,7 @@ void feMulGeneric(Element * v, Element * a, Element * b) {
 	// according to the reduction identity and added to the lowest limb.
 	//
 	// The largest coefficient (r0) will be at most 111 bits, which guarantees
-	// that all carries are at most 111 - 51 = 60 bits, which fits in a uint64.
+	// that all carries are at most 111 - 51 = 60 bits, which fits in a uint64_t.
 	//
 	//     r0 = a0×b0 + 19×(a1×b4 + a2×b3 + a3×b2 + a4×b1)
 	//     r0 < 2⁵²×2⁵² + 19×(2⁵²×2⁵² + 2⁵²×2⁵² + 2⁵²×2⁵² + 2⁵²×2⁵²)
@@ -164,7 +166,7 @@ void feMulGeneric(Element * v, Element * a, Element * b) {
 	//     r0 < 2¹¹¹
 	//
 	// Moreover, the top coefficient (r4) is at most 107 bits, so c4 is at most
-	// 56 bits, and c4 * 19 is at most 61 bits, which again fits in a uint64 and
+	// 56 bits, and c4 * 19 is at most 61 bits, which again fits in a uint64_t and
 	// allows us to easily apply the reduction identity.
 	//
 	//     r4 = a0×b4 + a1×b3 + a2×b2 + a3×b1 + a4×b0
@@ -172,17 +174,17 @@ void feMulGeneric(Element * v, Element * a, Element * b) {
 	//     r4 < 2¹⁰⁷
 	//
 
-	uint64 c0 = shiftRightBy51(r0);
-	uint64 c1 = shiftRightBy51(r1);
-	uint64 c2 = shiftRightBy51(r2);
-	uint64 c3 = shiftRightBy51(r3);
-	uint64 c4 = shiftRightBy51(r4);
+	uint64_t c0 = shiftRightBy51(r0);
+	uint64_t c1 = shiftRightBy51(r1);
+	uint64_t c2 = shiftRightBy51(r2);
+	uint64_t c3 = shiftRightBy51(r3);
+	uint64_t c4 = shiftRightBy51(r4);
 
-	uint64 rr0 = ((uint64)(r0)&maskLow51Bits) + c4*19;
-	uint64 rr1 = ((uint64)(r1)&maskLow51Bits) + c0;
-	uint64 rr2 = ((uint64)(r2)&maskLow51Bits) + c1;
-	uint64 rr3 = ((uint64)(r3)&maskLow51Bits) + c2;
-	uint64 rr4 = ((uint64)(r4)&maskLow51Bits) + c3;
+	uint64_t rr0 = ((uint64_t)(r0)&maskLow51Bits) + c4*19;
+	uint64_t rr1 = ((uint64_t)(r1)&maskLow51Bits) + c0;
+	uint64_t rr2 = ((uint64_t)(r2)&maskLow51Bits) + c1;
+	uint64_t rr3 = ((uint64_t)(r3)&maskLow51Bits) + c2;
+	uint64_t rr4 = ((uint64_t)(r4)&maskLow51Bits) + c3;
 
 	// Now all coefficients fit into 64-bit registers but are still too large to
 	// be passed around as an Element. We therefore do one last carry chain,
@@ -195,12 +197,12 @@ void feMulGeneric(Element * v, Element * a, Element * b) {
 	carryPropagateGeneric(v);
 }
 
-void feSquareGeneric(Element * v, Element * a) {
-	uint64 l0 = a->l0;
-	uint64 l1 = a->l1;
-	uint64 l2 = a->l2;
-	uint64 l3 = a->l3;
-	uint64 l4 = a->l4;
+void FORCE_NOINLINE feSquareGeneric(Element * v, Element * a) {
+	uint64_t l0 = a->l0;
+	uint64_t l1 = a->l1;
+	uint64_t l2 = a->l2;
+	uint64_t l3 = a->l3;
+	uint64_t l4 = a->l4;
 
 	// Squaring works precisely like multiplication above, but thanks to its
 	// symmetry we get to group a few terms together.
@@ -227,52 +229,52 @@ void feSquareGeneric(Element * v, Element * a) {
 	// With precomputed 2×, 19×, and 2×19× terms, we can compute each limb with
 	// only three Mul64 and four Add64, instead of five and eight.
 
-	uint64 l0_2 = l0 * 2;
-	uint64 l1_2 = l1 * 2;
+	uint64_t l0_2 = l0 * 2;
+	uint64_t l1_2 = l1 * 2;
 
-	uint64 l1_38 = l1 * 38;
-	uint64 l2_38 = l2 * 38;
-	uint64 l3_38 = l3 * 38;
+	uint64_t l1_38 = l1 * 38;
+	uint64_t l2_38 = l2 * 38;
+	uint64_t l3_38 = l3 * 38;
 
-	uint64 l3_19 = l3 * 19;
-	uint64 l4_19 = l4 * 19;
+	uint64_t l3_19 = l3 * 19;
+	uint64_t l4_19 = l4 * 19;
 
 	// r0 = l0×l0 + 19×(l1×l4 + l2×l3 + l3×l2 + l4×l1) = l0×l0 + 19×2×(l1×l4 + l2×l3)
-	uint128 r0 = mul64(l0, l0);
+	uint128_t r0 = mul64(l0, l0);
 	r0 = addMul64(r0, l1_38, l4);
 	r0 = addMul64(r0, l2_38, l3);
 
 	// r1 = l0×l1 + l1×l0 + 19×(l2×l4 + l3×l3 + l4×l2) = 2×l0×l1 + 19×2×l2×l4 + 19×l3×l3
-	uint128 r1 = mul64(l0_2, l1);
+	uint128_t r1 = mul64(l0_2, l1);
 	r1 = addMul64(r1, l2_38, l4);
 	r1 = addMul64(r1, l3_19, l3);
 
 	// r2 = l0×l2 + l1×l1 + l2×l0 + 19×(l3×l4 + l4×l3) = 2×l0×l2 + l1×l1 + 19×2×l3×l4
-	uint128 r2 = mul64(l0_2, l2);
+	uint128_t r2 = mul64(l0_2, l2);
 	r2 = addMul64(r2, l1, l1);
 	r2 = addMul64(r2, l3_38, l4);
 
 	// r3 = l0×l3 + l1×l2 + l2×l1 + l3×l0 + 19×l4×l4 = 2×l0×l3 + 2×l1×l2 + 19×l4×l4
-	uint128 r3 = mul64(l0_2, l3);
+	uint128_t r3 = mul64(l0_2, l3);
 	r3 = addMul64(r3, l1_2, l2);
 	r3 = addMul64(r3, l4_19, l4);
 
 	// r4 = l0×l4 + l1×l3 + l2×l2 + l3×l1 + l4×l0 = 2×l0×l4 + 2×l1×l3 + l2×l2
-	uint128 r4 = mul64(l0_2, l4);
+	uint128_t r4 = mul64(l0_2, l4);
 	r4 = addMul64(r4, l1_2, l3);
 	r4 = addMul64(r4, l2, l2);
 
-	uint64 c0 = shiftRightBy51(r0);
-	uint64 c1 = shiftRightBy51(r1);
-	uint64 c2 = shiftRightBy51(r2);
-	uint64 c3 = shiftRightBy51(r3);
-	uint64 c4 = shiftRightBy51(r4);
+	uint64_t c0 = shiftRightBy51(r0);
+	uint64_t c1 = shiftRightBy51(r1);
+	uint64_t c2 = shiftRightBy51(r2);
+	uint64_t c3 = shiftRightBy51(r3);
+	uint64_t c4 = shiftRightBy51(r4);
 
-	uint64 rr0 = ((uint64)(r0)&maskLow51Bits) + c4*19;
-	uint64 rr1 = ((uint64)(r1)&maskLow51Bits) + c0;
-	uint64 rr2 = ((uint64)(r2)&maskLow51Bits) + c1;
-	uint64 rr3 = ((uint64)(r3)&maskLow51Bits) + c2;
-	uint64 rr4 = ((uint64)(r4)&maskLow51Bits) + c3;
+	uint64_t rr0 = ((uint64_t)(r0)&maskLow51Bits) + c4*19;
+	uint64_t rr1 = ((uint64_t)(r1)&maskLow51Bits) + c0;
+	uint64_t rr2 = ((uint64_t)(r2)&maskLow51Bits) + c1;
+	uint64_t rr3 = ((uint64_t)(r3)&maskLow51Bits) + c2;
+	uint64_t rr4 = ((uint64_t)(r4)&maskLow51Bits) + c3;
 
 	v->l0 = rr0;
 	v->l1 = rr1;
