@@ -23,3 +23,5 @@ func feMul(v, x, y *Element) { feMulGeneric(v, x, y) }
 //
 //go:noescape
 func feSquare(out *Element, a *Element)
+
+func feSquare2(v, x *Element) { feSquare2Generic(v, x) }

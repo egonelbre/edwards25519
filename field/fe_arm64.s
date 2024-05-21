@@ -42,6 +42,7 @@ TEXT ·carryPropagate(SB), NOFRAME|NOSPLIT, $0-8
 
 	RET
 
+/*
 // func feMulX(out *Element, a *Element, b *Element)
 TEXT ·feMulX(SB), NOSPLIT, $0-24
 	STP.W (R29, R30), -48(RSP)
@@ -97,7 +98,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	UMULH R12, R16, R2
 	ADDS  R20, R5, R5
 	MUL   R15, R17, R20
-	AND   0x7ffffffffffff, R1, R8
+	AND   $0x7ffffffffffff, R1, R8
 	UMULH R15, R17, R21
 	ADC   R2, R19, R1
 	ADDS  R5, R3, R3
@@ -117,7 +118,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	UMULH R16, R10, R1
 	ADDS  R20, R30, R30
 	MUL   R11, R7, R20
-	AND   0x7ffffffffffff, R3, R3
+	AND   $0x7ffffffffffff, R3, R3
 	ADC   R2, R1, R1
 	ADDS  R30, R5, R5
 	UMULH R11, R7, R21
@@ -135,7 +136,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	MUL   R15, R10, R1
 	ADC   R20, R30, R30
 	UMULH R12, R13, R22
-	AND   0x7ffffffffffff, R5, R5
+	AND   $0x7ffffffffffff, R5, R5
 	UMULH R15, R10, R20
 	ADDS  R14, R1, R1
 	MUL   R6, R17, R21
@@ -159,7 +160,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	UMULH R12, R6, R6
 	ADDS  R17, R16, R16
 	MUL   R11, R9, R10
-	AND   0x7ffffffffffff, R2, R2
+	AND   $0x7ffffffffffff, R2, R2
 	ADC   R6, R4, R4
 	UMULH R11, R9, R9
 	ADDS  R16, R5, R5
@@ -167,15 +168,15 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	ADC   R4, R1, R1
 	ADDS  R10, R5, R5
 	ADC   R9, R1, R1
-	AND   0x7ffffffffffff, R5, R4
+	AND   $0x7ffffffffffff, R5, R4
 	ADD   R7, R4, R4
-	AND   0x7ffffffffffff, R2, R11
-	AND   0x7ffffffffffff, R4, R6
+	AND   $0x7ffffffffffff, R2, R11
+	AND   $0x7ffffffffffff, R4, R6
 	EXTR  $51, R5, R1, R1
 	LSR   $51, R4, R7
-	AND   0x7ffffffffffff, R14, R10
+	AND   $0x7ffffffffffff, R14, R10
 	ADD   R1<<2, R1, R4
-	AND   0x7ffffffffffff, R3, R9
+	AND   $0x7ffffffffffff, R3, R9
 	ADD   R7<<2, R7, R5
 	ADD   R2>>51, R6, R2
 	LSL   $2, R4, R4
@@ -184,7 +185,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	LSL   $2, R5, R4
 	ADD   R8, R1, R1
 	SUB   R7, R4, R4
-	AND   0x7ffffffffffff, R1, R5
+	AND   $0x7ffffffffffff, R1, R5
 	ADD   R3>>51, R10, R3
 	LDP   16(RSP), (R19, R20)
 	ADD   R1>>51, R9, R1
@@ -195,6 +196,7 @@ TEXT ·feMulX(SB), NOSPLIT, $0-24
 	STP   (R3, R14), 16(R0)
 	MOVD  R2, 32(R0)
 	RET
+*/
 
 // func feSquare(out *Element, a *Element)
 TEXT ·feSquare(SB), NOSPLIT, $0-16
@@ -246,7 +248,7 @@ TEXT ·feSquare(SB), NOSPLIT, $0-16
 	MUL   R13, R4, R6
 	ADC   R2, R1, R1
 	UMULH R10, R12, R12
-	AND   0x7ffffffffffff, R7, R7
+	AND   $0x7ffffffffffff, R7, R7
 	UMULH R13, R4, R2
 	ADDS  R6, R8, R8
 	UMULH R5, R5, R5
@@ -262,13 +264,13 @@ TEXT ·feSquare(SB), NOSPLIT, $0-16
 	UMULH R11, R13, R5
 	EXTR  $51, R8, R12, R12
 	UMULH R10, R15, R2
-	AND   0x7ffffffffffff, R16, R16
+	AND   $0x7ffffffffffff, R16, R16
 	ADC   R5, R14, R14
 	ADDS  R17, R6, R15
 	MUL   R11, R9, R5
 	ADC   R2, R14, R14
 	MUL   R10, R13, R17
-	AND   0x7ffffffffffff, R8, R8
+	AND   $0x7ffffffffffff, R8, R8
 	UMULH R10, R13, R6
 	ADD   R3, R16, R16
 	UMULH R11, R9, R2
@@ -280,24 +282,24 @@ TEXT ·feSquare(SB), NOSPLIT, $0-16
 	ADDS  R10, R5, R5
 	ADD   R1, R8, R8
 	ADC   R4, R2, R2
-	AND   0x7ffffffffffff, R5, R4
+	AND   $0x7ffffffffffff, R5, R4
 	ADD   R9, R4, R9
-	AND   0x7ffffffffffff, R15, R6
+	AND   $0x7ffffffffffff, R15, R6
 	EXTR  $51, R5, R2, R2
 	LSR   $51, R9, R10
 	ADD   R12, R6, R5
 	ADD   R2<<2, R2, R4
-	AND   0x7ffffffffffff, R8, R6
+	AND   $0x7ffffffffffff, R8, R6
 	ADD   R10<<2, R10, R3
-	AND   0x7ffffffffffff, R9, R9
+	AND   $0x7ffffffffffff, R9, R9
 	LSL   $2, R4, R1
-	AND   0x7ffffffffffff, R16, R4
+	AND   $0x7ffffffffffff, R16, R4
 	SUB   R2, R1, R1
 	LSL   $2, R3, R2
 	ADD   R7, R1, R1
 	SUB   R10, R2, R2
-	AND   0x7ffffffffffff, R5, R7
-	AND   0x7ffffffffffff, R1, R3
+	AND   $0x7ffffffffffff, R5, R7
+	AND   $0x7ffffffffffff, R1, R3
 	ADD   R5>>51, R9, R5
 	ADD   R8>>51, R7, R8
 	ADD   R16>>51, R6, R16
