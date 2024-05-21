@@ -14,3 +14,12 @@ func (v *Element) carryPropagate() *Element {
 	carryPropagate(v)
 	return v
 }
+
+func feMul(v, x, y *Element) { feMulGeneric(v, x, y) }
+
+// func feSquare(v, x *Element) { feSquareGeneric(v, x) }
+
+// feSquare sets out = a * a. It works like feSquareGeneric.
+//
+//go:noescape
+func feSquare(out *Element, a *Element)
