@@ -248,8 +248,27 @@ func feSquareGeneric(v, a *Element) {
 	rr3 := r3.lo&maskLow51Bits + c2
 	rr4 := r4.lo&maskLow51Bits + c3
 
-	*v = Element{rr0, rr1, rr2, rr3, rr4}
-	v.carryPropagate()
+	c0 = rr0 >> 51
+	c1 = rr1 >> 51
+	c2 = rr2 >> 51
+	c3 = rr3 >> 51
+	c4 = rr4 >> 51
+
+	// c4 is at most 64 - 51 = 13 bits, so c4*19 is at most 18 bits, and
+	// the final l0 will be at most 52 bits. Similarly for the rest.
+	v.l0 = rr0&maskLow51Bits + c4*19
+	v.l1 = rr1&maskLow51Bits + c0
+	v.l2 = rr2&maskLow51Bits + c1
+	v.l3 = rr3&maskLow51Bits + c2
+	v.l4 = rr4&maskLow51Bits + c3
+}
+
+func feSquareTransliterate(v, a *Element) {
+	r6, r5 := a.l0, a.l1
+	r4, r11 := a.l2, a.l3
+	r10 := a.l4
+
+	r3 := r5 + r5<<2
 }
 
 func feSquare2Generic(v, a *Element) {
@@ -337,8 +356,19 @@ func feSquare2Generic(v, a *Element) {
 	rr3 := r3.lo&maskLow51Bits + c2
 	rr4 := r4.lo&maskLow51Bits + c3
 
-	*v = Element{rr0, rr1, rr2, rr3, rr4}
-	v.carryPropagate()
+	c0 = rr0 >> 51
+	c1 = rr1 >> 51
+	c2 = rr2 >> 51
+	c3 = rr3 >> 51
+	c4 = rr4 >> 51
+
+	// c4 is at most 64 - 51 = 13 bits, so c4*19 is at most 18 bits, and
+	// the final l0 will be at most 52 bits. Similarly for the rest.
+	v.l0 = rr0&maskLow51Bits + c4*19
+	v.l1 = rr1&maskLow51Bits + c0
+	v.l2 = rr2&maskLow51Bits + c1
+	v.l3 = rr3&maskLow51Bits + c2
+	v.l4 = rr4&maskLow51Bits + c3
 }
 
 // carryPropagateGeneric brings the limbs below 52 bits by applying the reduction
