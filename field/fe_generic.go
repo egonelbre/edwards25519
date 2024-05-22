@@ -158,8 +158,14 @@ func feMulGeneric(v, a, b *Element) {
 	// Now all coefficients fit into 64-bit registers but are still too large to
 	// be passed around as an Element. We therefore do one last carry chain,
 	// where the carries will be small enough to fit in the wiggle room above 2⁵¹.
-	*v = Element{rr0, rr1, rr2, rr3, rr4}
-	v.carryPropagate()
+
+	*v = Element{
+		rr0&maskLow51Bits + (rr4 >> 51)*19,
+		rr1&maskLow51Bits + rr0 >> 51,
+		rr2&maskLow51Bits + rr1 >> 51,
+		rr3&maskLow51Bits + rr2 >> 51,
+		rr4&maskLow51Bits + rr3 >> 51,
+	}
 }
 
 func feSquareGeneric(v, a *Element) {
@@ -194,73 +200,71 @@ func feSquareGeneric(v, a *Element) {
 	// With precomputed 2×, 19×, and 2×19× terms, we can compute each limb with
 	// only three Mul64 and four Add64, instead of five and eight.
 
-	l0_2 := l0 * 2
-	l1_2 := l1 * 2
-
-	l1_38 := l1 * 38
-	l2_38 := l2 * 38
-	l3_38 := l3 * 38
-
-	l3_19 := l3 * 19
-	l4_19 := l4 * 19
-
 	// r0 = l0×l0 + 19×(l1×l4 + l2×l3 + l3×l2 + l4×l1) = l0×l0 + 19×2×(l1×l4 + l2×l3)
-	r0 := mul64(l0, l0)
-	r0 = addMul64(r0, l1_38, l4)
-	r0 = addMul64(r0, l2_38, l3)
 
 	// r1 = l0×l1 + l1×l0 + 19×(l2×l4 + l3×l3 + l4×l2) = 2×l0×l1 + 19×2×l2×l4 + 19×l3×l3
-	r1 := mul64(l0_2, l1)
-	r1 = addMul64(r1, l2_38, l4)
-	r1 = addMul64(r1, l3_19, l3)
+	
 
 	// r2 = l0×l2 + l1×l1 + l2×l0 + 19×(l3×l4 + l4×l3) = 2×l0×l2 + l1×l1 + 19×2×l3×l4
-	r2 := mul64(l0_2, l2)
-	r2 = addMul64(r2, l1, l1)
-	r2 = addMul64(r2, l3_38, l4)
+
 
 	// r3 = l0×l3 + l1×l2 + l2×l1 + l3×l0 + 19×l4×l4 = 2×l0×l3 + 2×l1×l2 + 19×l4×l4
-	r3 := mul64(l0_2, l3)
-	r3 = addMul64(r3, l1_2, l2)
-	r3 = addMul64(r3, l4_19, l4)
+
+
 
 	// r4 = l0×l4 + l1×l3 + l2×l2 + l3×l1 + l4×l0 = 2×l0×l4 + 2×l1×l3 + l2×l2
-	r4 := mul64(l0_2, l4)
-	r4 = addMul64(r4, l1_2, l3)
+	r4 := mul64(l0<<1, l4)
+	r4 = addMul64(r4, l1<<1, l3)
 	r4 = addMul64(r4, l2, l2)
 
-	c0 := shiftRightBy51(r0)
-	c1 := shiftRightBy51(r1)
-	c2 := shiftRightBy51(r2)
-	c3 := shiftRightBy51(r3)
+	r0 := mul64(l0, l0)
+	r0 = addMul64(r0, ((l1 + l1<<3)<<1 + l1)<<1, l4)
+	r0 = addMul64(r0, ((l2 + l2<<3)<<1 + l2)<<1, l3)
 	c4 := shiftRightBy51(r4)
-
-	rr0 := r0.lo&maskLow51Bits + c4*19
+	rr0 := r0.lo&maskLow51Bits + (c4 + c4<<3)<<1+c4
+	
+	r1 := mul64(l0<<1, l1)
+	c0 := shiftRightBy51(r0)
+	r1 = addMul64(r1, ((l2 + l2<<3)<<1 + l2)<<1, l4)
+	r1 = addMul64(r1, (l3 + l3<<3)<<1+l3, l3)
 	rr1 := r1.lo&maskLow51Bits + c0
+	
+	r2 := mul64(l0<<1, l2)
+	c1 := shiftRightBy51(r1)
+	r2 = addMul64(r2, l1, l1)
+	r2 = addMul64(r2, ((l3 + l3<<3)<<1 + l3)<<1, l4)
 	rr2 := r2.lo&maskLow51Bits + c1
+	
+	r3 := mul64(l0<<1, l3)
+	c2 := shiftRightBy51(r2)
+	r3 = addMul64(r3, l1<<1, l2)
+	r3 = addMul64(r3, (l4 + l4<<3)<<1+l4, l4)
 	rr3 := r3.lo&maskLow51Bits + c2
+	c3 := shiftRightBy51(r3)
 	rr4 := r4.lo&maskLow51Bits + c3
 
-	*v = Element{rr0, rr1, rr2, rr3, rr4}
-	v.carryPropagate()
+	cx := (rr4 >> 51)
+	*v = Element{
+		rr0&maskLow51Bits + (cx + cx<<3)<<1+cx,
+		rr1&maskLow51Bits + rr0 >> 51,
+		rr2&maskLow51Bits + rr1 >> 51,
+		rr3&maskLow51Bits + rr2 >> 51,
+		rr4&maskLow51Bits + rr3 >> 51,
+	}
 }
 
 // carryPropagateGeneric brings the limbs below 52 bits by applying the reduction
 // identity (a * 2²⁵⁵ + b = a * 19 + b) to the l4 carry.
 func (v *Element) carryPropagateGeneric() *Element {
-	c0 := v.l0 >> 51
-	c1 := v.l1 >> 51
-	c2 := v.l2 >> 51
-	c3 := v.l3 >> 51
-	c4 := v.l4 >> 51
-
 	// c4 is at most 64 - 51 = 13 bits, so c4*19 is at most 18 bits, and
 	// the final l0 will be at most 52 bits. Similarly for the rest.
-	v.l0 = v.l0&maskLow51Bits + c4*19
-	v.l1 = v.l1&maskLow51Bits + c0
-	v.l2 = v.l2&maskLow51Bits + c1
-	v.l3 = v.l3&maskLow51Bits + c2
-	v.l4 = v.l4&maskLow51Bits + c3
+
+	l0 := v.l0
+	v.l0 = l0&maskLow51Bits + (v.l4 >> 51)*19
+	v.l4 = v.l4&maskLow51Bits + v.l3 >> 51
+	v.l3 = v.l3&maskLow51Bits + v.l2 >> 51
+	v.l2 = v.l2&maskLow51Bits + v.l1 >> 51
+	v.l1 = v.l1&maskLow51Bits + l0 >> 51
 
 	return v
 }
