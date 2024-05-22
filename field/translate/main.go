@@ -1,12 +1,40 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
+	"io"
+	"os"
 	"regexp"
 	"strings"
 )
 
 func main() {
+	var b bytes.Buffer
+	translate(&b)
+
+	data, err := format.Source(b.Bytes())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+
+		fmt.Fprintln(os.Stderr, b.String())
+	}
+
+	fmt.Println(string(data))
+}
+
+func translate(b io.Writer) {
+	fmt.Fprintf(b, "package field\n\n")
+	fmt.Fprintf(b, `import "math/bits"`+"\n\n")
+
+	fmt.Fprintf(b, `type Element struct { l0, l1, l2, l3, l4 uint64 }`+"\n\n")
+
+	fmt.Fprintf(b, "func Square(v, a *Element) {\n")
+	fmt.Fprintf(b, "var R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, c uint64\n")
+
+	defer fmt.Fprintf(b, "}\n")
+
 	for _, line := range strings.Split(asm, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -15,57 +43,90 @@ func main() {
 
 		var roff, ra, rb, rout, rout2 string
 		switch {
-		case match(line, `LDP \($R\), \($R, $R\)`, &ra, &rout, &rout2):
-			fmt.Printf("%v, %v = ldp(%v)\n", rout, rout2, ra)
+		case match(line, `RET`):
+		case match(line, `LDP \(%R\), \(%R, %R\)`, &ra, &rout, &rout2):
+			roff = "0"
+			fallthrough
 
-		case match(line, `LDP $D\($R\), \($R, $R\)`, &roff, &ra, &rout, &rout2):
-			fmt.Printf("%v, %v = ldp(%v, %v)\n", rout, rout2, ra, roff)
+		case match(line, `LDP %D\(%R\), \(%R, %R\)`, &roff, &ra, &rout, &rout2):
+			switch [2]string{roff, ra} {
+			case [2]string{"0", "R1"}:
+				fmt.Fprintf(b, "%v, %v = a.l0, a.l1\n", rout, rout2)
+			case [2]string{"16", "R1"}:
+				fmt.Fprintf(b, "%v, %v = a.l2, a.l3\n", rout, rout2)
+			default:
+				fmt.Fprintf(b, "%v, %v = ldp(%v, %v)\n", rout, rout2, ra, roff)
+			}
 
-		case match(line, `MOVD $D\($R\), $R`, &roff, &ra, &rout):
-			fmt.Printf("%v = load(%v, %v)\n", rout, ra, roff)
+		case match(line, `MOVD %D\(%R\), %R`, &roff, &ra, &rout):
+			switch [2]string{roff, ra} {
+			case [2]string{"32", "R1"}:
+				fmt.Fprintf(b, "%v = a.l4\n", rout)
+			default:
+				fmt.Fprintf(b, "%v = load(%v, %v)\n", rout, ra, roff)
+			}
 
-		case match(line, `ADD $R<<2, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v<<2 + %v\n", rout, ra, rb)
+		case match(line, `STP \(%R, %R\), \(%R\)`, &ra, &rb, &rout):
+			roff = "0"
+			fallthrough
+		case match(line, `STP \(%R, %R\), %D\(%R\)`, &ra, &rb, &roff, &rout):
+			switch [2]string{roff, rout} {
+			case [2]string{"0", "R0"}:
+				fmt.Fprintf(b, "v.l0, v.l1 = %v, %v\n", ra, rb)
+			case [2]string{"16", "R0"}:
+				fmt.Fprintf(b, "v.l2, v.l3 = %v, %v\n", ra, rb)
+			default:
+				fmt.Fprintf(b, "offset(%v, %v) = %v, %v\n", rout, roff, ra, rb)
+			}
 
-		case match(line, `ADD $R<<2, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v<<2 + %v\n", rout, ra, rb)
+		case match(line, `MOVD %R, %D\(%R\)`, &ra, &roff, &rout):
+			switch [2]string{roff, rout} {
+			case [2]string{"32", "R0"}:
+				fmt.Fprintf(b, "v.l4 = %v\n", ra)
+			default:
+				fmt.Fprintf(b, "offset(%v, %v) = %v\n", rout, roff, ra)
+			}
 
-		case match(line, `ADD $R>>51, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v>>51 + %v\n", rout, ra, rb)
+		case match(line, `ADD %R<<2, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = %v<<2 + %v\n", rout, ra, rb)
 
-		case match(line, `LSL \$$D, $R, $R`, &roff, &ra, &rout):
-			fmt.Printf("%v = %v<<%v\n", rout, ra, roff)
+		case match(line, `ADD %R>>51, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = %v>>51 + %v\n", rout, ra, rb)
 
-		case match(line, `LSR \$$D, $R, $R`, &roff, &ra, &rout):
-			fmt.Printf("%v = %v>>%v\n", rout, ra, roff)
+		case match(line, `LSL \$%D, %R, %R`, &roff, &ra, &rout):
+			fmt.Fprintf(b, "%v = %v<<%v\n", rout, ra, roff)
 
-		case match(line, `MUL $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("_, %v = bits.Mul64(%v, %v)\n", rout, ra, rb)
+		case match(line, `LSR \$%D, %R, %R`, &roff, &ra, &rout):
+			fmt.Fprintf(b, "%v = %v>>%v\n", rout, ra, roff)
 
-		case match(line, `UMULH $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v, _ = bits.Mul64(%v, %v)\n", rout, ra, rb)
+		case match(line, `MUL %R, %R, %R`, &ra, &rb, &rout):
+			// fmt.Fprintf(b,"_, %v = bits.Mul64(%v, %v)\n", rout, ra, rb)
+			fmt.Fprintf(b, "%v = %v * %v\n", rout, ra, rb)
 
-		case match(line, `SUB $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v - %v\n", rout, ra, rb)
+		case match(line, `UMULH %R, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v, _ = bits.Mul64(%v, %v)\n", rout, ra, rb)
 
-		case match(line, `ADD $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v + %v\n", rout, ra, rb)
+		case match(line, `SUB %R, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = %v - %v\n", rout, ra, rb)
 
-		case match(line, `AND $X, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("%v = %v & %v\n", rout, ra, rb)
+		case match(line, `ADD %R, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = %v + %v\n", rout, ra, rb)
 
-		case match(line, `ADDS $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("c, %v = bits.Add64(%v, %v, 0)\n", rout, ra, rb)
+		case match(line, `AND %X, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = %v & %v\n", rout, ra, rb)
 
-		case match(line, `ADC $R, $R, $R`, &ra, &rb, &rout):
-			fmt.Printf("_, %v = bits.Add64(%v, %v, c)\n", rout, ra, rb)
+		case match(line, `ADDS %R, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "c, %v = bits.Add64(%v, %v, 0)\n", rout, ra, rb)
+
+		case match(line, `ADC %R, %R, %R`, &ra, &rb, &rout):
+			fmt.Fprintf(b, "_, %v = bits.Add64(%v, %v, c)\n", rout, ra, rb)
 
 		//  EXTR  $51, R5, R2, R2
-		case match(line, `EXTR \$$D, $R, $R, $R`, &roff, &ra, &rb, &rout):
-			fmt.Printf("%v = (%v << %v) | (%v >> %v)\n", rout, ra, roff, rb, roff)
+		case match(line, `EXTR \$%D, %R, %R, %R`, &roff, &ra, &rb, &rout):
+			fmt.Fprintf(b, "%v = (%v << %v) | (%v >> %v)\n", rout, ra, roff, rb, roff)
 
 		default:
-			fmt.Printf("// ?? %v\n", line)
+			fmt.Fprintf(b, "// ?? %v\n", line)
 		}
 	}
 }
@@ -75,9 +136,9 @@ var cache = map[string]*regexp.Regexp{}
 func match(line, regex string, args ...*string) bool {
 	rx, ok := cache[regex]
 	if !ok {
-		x := strings.ReplaceAll(regex, "$R", "(R\\d+)")
-		x = strings.ReplaceAll(x, "$D", "(\\d+)")
-		x = strings.ReplaceAll(x, "$X", "\\$(0x[0-9a-f]+)")
+		x := strings.ReplaceAll(regex, "%R", "(R\\d+)")
+		x = strings.ReplaceAll(x, "%D", "(\\d+)")
+		x = strings.ReplaceAll(x, "%X", "\\$(0x[0-9a-f]+)")
 		x = strings.ReplaceAll(x, " ", "\\s*")
 		rx = regexp.MustCompile(x)
 		cache[regex] = rx

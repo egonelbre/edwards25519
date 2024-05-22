@@ -263,14 +263,6 @@ func feSquareGeneric(v, a *Element) {
 	v.l4 = rr4&maskLow51Bits + c3
 }
 
-func feSquareTransliterate(v, a *Element) {
-	r6, r5 := a.l0, a.l1
-	r4, r11 := a.l2, a.l3
-	r10 := a.l4
-
-	r3 := r5 + r5<<2
-}
-
 func feSquare2Generic(v, a *Element) {
 	l0 := a.l0
 	l1 := a.l1
@@ -389,4 +381,115 @@ func (v *Element) carryPropagateGeneric() *Element {
 	v.l4 = v.l4&maskLow51Bits + c3
 
 	return v
+}
+
+func feSquareGenericAlternate(v, a *Element) {
+	var R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, c uint64
+
+	R6, R5 = a.l0, a.l1
+	R4, R11 = a.l2, a.l3
+	R10 = a.l4
+	R3 = R5<<2 + R5
+	R13 = R6 << 1
+	R17 = R6 * R6
+	R9 = R5 << 1
+	R2 = R4<<2 + R4
+	R3 = R3 << 2
+	R3 = R5 - R3
+	R7 = R11<<2 + R11
+	R2 = R2 << 2
+	R15 = R10<<2 + R10
+	R2 = R4 - R2
+	R3 = R3 << 1
+	R15 = R15 << 2
+	R14 = R5 * R5
+	R1 = R2 << 1
+	R2 = R7 << 2
+	R7 = R10 * R3
+	R2 = R11 - R2
+	R3, _ = bits.Mul64(R10, R3)
+	R15 = R10 - R15
+	R8 = R11 * R1
+	R12 = R2 << 1
+	R16, _ = bits.Mul64(R11, R1)
+	c, R7 = bits.Add64(R8, R7, 0)
+	R8, _ = bits.Mul64(R6, R6)
+	_, R3 = bits.Add64(R16, R3, c)
+	R6 = R10 * R1
+	R16 = R5 * R13
+	c, R7 = bits.Add64(R17, R7, 0)
+	_, R3 = bits.Add64(R8, R3, c)
+	R1, _ = bits.Mul64(R10, R1)
+	R8, _ = bits.Mul64(R5, R13)
+	c, R6 = bits.Add64(R16, R6, 0)
+	R16 = R11 * R2
+	R3 = (R7 << 51) | (R3 >> 51)
+	R2, _ = bits.Mul64(R11, R2)
+	_, R1 = bits.Add64(R8, R1, c)
+	c, R16 = bits.Add64(R16, R6, 0)
+	R8 = R10 * R12
+	R6 = R13 * R4
+	_, R1 = bits.Add64(R2, R1, c)
+	R12, _ = bits.Mul64(R10, R12)
+	R7 = 0x7ffffffffffff & R7
+	R2, _ = bits.Mul64(R13, R4)
+	c, R8 = bits.Add64(R6, R8, 0)
+	R5, _ = bits.Mul64(R5, R5)
+	R1 = (R16 << 51) | (R1 >> 51)
+	R6 = R4 * R9
+	_, R12 = bits.Add64(R2, R12, c)
+	c, R8 = bits.Add64(R14, R8, 0)
+	R2 = R11 * R13
+	R14, _ = bits.Mul64(R4, R9)
+	_, R12 = bits.Add64(R5, R12, c)
+	R17 = R10 * R15
+	c, R6 = bits.Add64(R2, R6, 0)
+	R5, _ = bits.Mul64(R11, R13)
+	R12 = (R8 << 51) | (R12 >> 51)
+	R2, _ = bits.Mul64(R10, R15)
+	R16 = 0x7ffffffffffff & R16
+	_, R14 = bits.Add64(R5, R14, c)
+	c, R15 = bits.Add64(R17, R6, 0)
+	R5 = R11 * R9
+	_, R14 = bits.Add64(R2, R14, c)
+	R17 = R10 * R13
+	R8 = 0x7ffffffffffff & R8
+	R6, _ = bits.Mul64(R10, R13)
+	R16 = R3 + R16
+	R2, _ = bits.Mul64(R11, R9)
+	c, R5 = bits.Add64(R17, R5, 0)
+	R10 = R4 * R4
+	R9 = (R15 << 51) | (R14 >> 51)
+	R4, _ = bits.Mul64(R4, R4)
+	_, R2 = bits.Add64(R6, R2, c)
+	c, R5 = bits.Add64(R10, R5, 0)
+	R8 = R1 + R8
+	_, R2 = bits.Add64(R4, R2, c)
+	R4 = 0x7ffffffffffff & R5
+	R9 = R9 + R4
+	R6 = 0x7ffffffffffff & R15
+	R2 = (R5 << 51) | (R2 >> 51)
+	R10 = R9 >> 51
+	R5 = R12 + R6
+	R4 = R2<<2 + R2
+	R6 = 0x7ffffffffffff & R8
+	R3 = R10<<2 + R10
+	R9 = 0x7ffffffffffff & R9
+	R1 = R4 << 2
+	R4 = 0x7ffffffffffff & R16
+	R1 = R2 - R1
+	R2 = R3 << 2
+	R1 = R7 + R1
+	R2 = R10 - R2
+	R7 = 0x7ffffffffffff & R5
+	R3 = 0x7ffffffffffff & R1
+	R5 = R5>>51 + R9
+	R8 = R8>>51 + R7
+	R16 = R16>>51 + R6
+	R1 = R1>>51 + R4
+	R2 = R3 + R2
+
+	v.l0, v.l1 = R2, R1
+	v.l2, v.l3 = R16, R8
+	v.l4 = R5
 }

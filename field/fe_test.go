@@ -533,6 +533,26 @@ func TestFeSquare(t *testing.T) {
 	}
 }
 
+func TestFeSquareTransliterate(t *testing.T) {
+	asmLikeGeneric := func(a Element) bool {
+		t1 := a
+		t2 := a
+
+		feSquareGeneric(&t1, &t1)
+		feSquareGenericAlternate(&t2, &t2)
+
+		if t1 != t2 {
+			t.Logf("got: %#v,\nexpected: %#v", t1, t2)
+		}
+
+		return t1 == t2 && isInBounds(&t2)
+	}
+
+	if err := quick.Check(asmLikeGeneric, quickCheckConfig(1024)); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestFeMul(t *testing.T) {
 	asmLikeGeneric := func(a, b Element) bool {
 		a1 := a
