@@ -76,10 +76,10 @@ func feMulGeneric(v, a, b *Element) {
 	//
 	// Finally we add up the columns into wide, overlapping limbs.
 
-	a1_19 := a1 * 19
-	a2_19 := a2 * 19
-	a3_19 := a3 * 19
-	a4_19 := a4 * 19
+	a1_19 := a1 + (a1 + a1 << 3) << 1
+	a2_19 := a2 + (a2 + a2 << 3) << 1
+	a3_19 := a3 + (a3 + a3 << 3) << 1
+	a4_19 := a4 + (a4 + a4 << 3) << 1
 
 	// r0 = a0×b0 + 19×(a1×b4 + a2×b3 + a3×b2 + a4×b1)
 	r0 := mul64(a0, b0)
@@ -149,7 +149,7 @@ func feMulGeneric(v, a, b *Element) {
 	c3 := shiftRightBy51(r3)
 	c4 := shiftRightBy51(r4)
 
-	rr0 := r0.lo&maskLow51Bits + c4*19
+	rr0 := r0.lo&maskLow51Bits + c4 * 19
 	rr1 := r1.lo&maskLow51Bits + c0
 	rr2 := r2.lo&maskLow51Bits + c1
 	rr3 := r3.lo&maskLow51Bits + c2
@@ -197,12 +197,12 @@ func feSquareGeneric(v, a *Element) {
 	l0_2 := l0 * 2
 	l1_2 := l1 * 2
 
-	l1_38 := l1 * 38
-	l2_38 := l2 * 38
-	l3_38 := l3 * 38
+	l1_38 := (l1 + (l1 + l1 << 3) << 1) << 1
+	l2_38 := (l2 + (l2 + l2 << 3) << 1) << 1
+	l3_38 := (l3 + (l3 + l3 << 3) << 1) << 1
 
-	l3_19 := l3 * 19
-	l4_19 := l4 * 19
+	l3_19 := l3 + (l3 + l3 << 3) << 1
+	l4_19 := l4 + (l4 + l4 << 3) << 1
 
 	// r0 = l0×l0 + 19×(l1×l4 + l2×l3 + l3×l2 + l4×l1) = l0×l0 + 19×2×(l1×l4 + l2×l3)
 	r0 := mul64(l0, l0)
@@ -235,7 +235,7 @@ func feSquareGeneric(v, a *Element) {
 	c3 := shiftRightBy51(r3)
 	c4 := shiftRightBy51(r4)
 
-	rr0 := r0.lo&maskLow51Bits + c4*19
+	rr0 := r0.lo&maskLow51Bits + c4 * 19
 	rr1 := r1.lo&maskLow51Bits + c0
 	rr2 := r2.lo&maskLow51Bits + c1
 	rr3 := r3.lo&maskLow51Bits + c2
@@ -256,7 +256,7 @@ func (v *Element) carryPropagateGeneric() *Element {
 
 	// c4 is at most 64 - 51 = 13 bits, so c4*19 is at most 18 bits, and
 	// the final l0 will be at most 52 bits. Similarly for the rest.
-	v.l0 = v.l0&maskLow51Bits + c4*19
+	v.l0 = v.l0&maskLow51Bits + c4 * 19
 	v.l1 = v.l1&maskLow51Bits + c0
 	v.l2 = v.l2&maskLow51Bits + c1
 	v.l3 = v.l3&maskLow51Bits + c2
