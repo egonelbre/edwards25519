@@ -85,28 +85,40 @@ func (v *Element) reduce() *Element {
 
 // Add sets v = a + b, and returns v.
 func (v *Element) Add(a, b *Element) *Element {
-	v.l0 = a.l0 + b.l0
-	v.l1 = a.l1 + b.l1
-	v.l2 = a.l2 + b.l2
-	v.l3 = a.l3 + b.l3
-	v.l4 = a.l4 + b.l4
-	// Using the generic implementation here is actually faster than the
-	// assembly. Probably because the body of this function is so simple that
-	// the compiler can figure out better optimizations by inlining the carry
-	// propagation.
-	return v.carryPropagateGeneric()
+	rr0 := a.l0 + b.l0
+	rr1 := a.l1 + b.l1
+	rr2 := a.l2 + b.l2
+	rr3 := a.l3 + b.l3
+	rr4 := a.l4 + b.l4
+
+	*v = Element{
+		rr0&maskLow51Bits + (rr4 >> 51)*19,
+		rr1&maskLow51Bits + rr0 >> 51,
+		rr2&maskLow51Bits + rr1 >> 51,
+		rr3&maskLow51Bits + rr2 >> 51,
+		rr4&maskLow51Bits + rr3 >> 51,
+	}
+	return v
 }
 
 // Subtract sets v = a - b, and returns v.
 func (v *Element) Subtract(a, b *Element) *Element {
 	// We first add 2 * p, to guarantee the subtraction won't underflow, and
 	// then subtract b (which can be up to 2^255 + 2^13 * 19).
-	v.l0 = (a.l0 + 0xFFFFFFFFFFFDA) - b.l0
-	v.l1 = (a.l1 + 0xFFFFFFFFFFFFE) - b.l1
-	v.l2 = (a.l2 + 0xFFFFFFFFFFFFE) - b.l2
-	v.l3 = (a.l3 + 0xFFFFFFFFFFFFE) - b.l3
-	v.l4 = (a.l4 + 0xFFFFFFFFFFFFE) - b.l4
-	return v.carryPropagate()
+	rr0 := (a.l0 + 0xFFFFFFFFFFFDA) - b.l0
+	rr1 := (a.l1 + 0xFFFFFFFFFFFFE) - b.l1
+	rr2 := (a.l2 + 0xFFFFFFFFFFFFE) - b.l2
+	rr3 := (a.l3 + 0xFFFFFFFFFFFFE) - b.l3
+	rr4 := (a.l4 + 0xFFFFFFFFFFFFE) - b.l4
+
+	*v = Element{
+		rr0&maskLow51Bits + (rr4 >> 51)*19,
+		rr1&maskLow51Bits + rr0 >> 51,
+		rr2&maskLow51Bits + rr1 >> 51,
+		rr3&maskLow51Bits + rr2 >> 51,
+		rr4&maskLow51Bits + rr3 >> 51,
+	}
+	return v
 }
 
 // Negate sets v = -a, and returns v.
