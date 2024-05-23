@@ -119,7 +119,8 @@ func translate(b io.Writer) {
 			fmt.Fprintf(b, "c, %v = bits.Add64(%v, %v, 0)\n", rout, ra, rb)
 
 		case match(line, `ADC %R, %R, %R`, &ra, &rb, &rout):
-			fmt.Fprintf(b, "_, %v = bits.Add64(%v, %v, c)\n", rout, ra, rb)
+			// fmt.Fprintf(b, "_, %v = bits.Add64(%v, %v, c)\n", rout, ra, rb)
+			fmt.Fprintf(b, "%v = %v + %v + c\n", rout, ra, rb)
 
 		//  EXTR  $51, R5, R2, R2
 		case match(line, `EXTR \$%D, %R, %R, %R`, &roff, &ra, &rb, &rout):
