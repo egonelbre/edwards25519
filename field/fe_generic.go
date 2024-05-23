@@ -48,8 +48,8 @@ func addMul64_38(v uint128, a, b uint64) uint128 {
 }
 
 // shiftRightBy51 returns a >> 51. a is assumed to be at most 115 bits.
-func shiftRightBy51(a uint128) uint64 {
-	return (a.hi << (64 - 51)) | (a.lo >> 51)
+func shiftRightBy51(a uint128) (uint64, uint64) {
+	return (a.hi << (64 - 51)) | (a.lo >> 51), a.lo&maskLow51Bits
 }
 
 func feMulGeneric(v, a, b *Element) {
@@ -159,17 +159,17 @@ func feMulGeneric(v, a, b *Element) {
 	//     r4 < 2¹⁰⁷
 	//
 
-	c0 := shiftRightBy51(r0)
-	c1 := shiftRightBy51(r1)
-	c2 := shiftRightBy51(r2)
-	c3 := shiftRightBy51(r3)
-	c4 := shiftRightBy51(r4)
+	c0, r0_lo := shiftRightBy51(r0)
+	c1, r1_lo := shiftRightBy51(r1)
+	c2, r2_lo := shiftRightBy51(r2)
+	c3, r3_lo := shiftRightBy51(r3)
+	c4, r4_lo := shiftRightBy51(r4)
 
-	rr0 := r0.lo&maskLow51Bits + mul19(c4)
-	rr1 := r1.lo&maskLow51Bits + c0
-	rr2 := r2.lo&maskLow51Bits + c1
-	rr3 := r3.lo&maskLow51Bits + c2
-	rr4 := r4.lo&maskLow51Bits + c3
+	rr0 := r0_lo + mul19(c4)
+	rr1 := r1_lo + c0
+	rr2 := r2_lo + c1
+	rr3 := r3_lo + c2
+	rr4 := r4_lo + c3
 
 	// Now all coefficients fit into 64-bit registers but are still too large to
 	// be passed around as an Element. We therefore do one last carry chain,
@@ -240,17 +240,17 @@ func feSquareGeneric(v, a *Element) {
 	r4 = addMul64(r4, l1*2, l3)
 	r4 = addMul64(r4, l2, l2)
 
-	c0 := shiftRightBy51(r0)
-	c1 := shiftRightBy51(r1)
-	c2 := shiftRightBy51(r2)
-	c3 := shiftRightBy51(r3)
-	c4 := shiftRightBy51(r4)
+	c0, r0_lo := shiftRightBy51(r0)
+	c1, r1_lo := shiftRightBy51(r1)
+	c2, r2_lo := shiftRightBy51(r2)
+	c3, r3_lo := shiftRightBy51(r3)
+	c4, r4_lo := shiftRightBy51(r4)
 
-	rr0 := r0.lo&maskLow51Bits + mul19(c4)
-	rr1 := r1.lo&maskLow51Bits + c0
-	rr2 := r2.lo&maskLow51Bits + c1
-	rr3 := r3.lo&maskLow51Bits + c2
-	rr4 := r4.lo&maskLow51Bits + c3
+	rr0 := r0_lo + mul19(c4)
+	rr1 := r1_lo + c0
+	rr2 := r2_lo + c1
+	rr3 := r3_lo + c2
+	rr4 := r4_lo + c3
 
 	// manually inlined carryPropagate
 	v.l0 = rr0&maskLow51Bits + mul19(rr4 >> 51)
