@@ -15,41 +15,46 @@ type uint128 struct {
 // mul64 returns a * b.
 func mul64(a, b uint64) uint128 {
 	hi, lo := bits.Mul64(a, b)
-	return uint128{lo, hi}
+	return uint128{lo: lo, hi: hi}
 }
 
 // addMul64 returns v + a * b.
 func addMul64(v uint128, a, b uint64) uint128 {
-	hi, lo := bits.Mul64(a, b)
+	_, lo := bits.Mul64(a, b)
 	lo, c := bits.Add64(lo, v.lo, 0)
+	hi, _ := bits.Mul64(a, b)
 	hi, _ = bits.Add64(hi, v.hi, c)
-	return uint128{lo, hi}
+	return uint128{lo: lo, hi: hi}
 }
 
 func mul19(v uint64) uint64 {
 	// Go 1.22 doesn't have optimizations for *19, for ARM.
-	return v + (v + v<<3)<<1
+	return v + (v+v<<3)<<1
 }
 
 // addMul64 returns v + a * b.
 func addMul64_19(v uint128, a, b uint64) uint128 {
-	hi, lo := bits.Mul64(mul19(a), b)
+	a19 := mul19(a)
+	_, lo := bits.Mul64(a19, b)
 	lo, c := bits.Add64(lo, v.lo, 0)
+	hi, _ := bits.Mul64(a19, b)
 	hi, _ = bits.Add64(hi, v.hi, c)
-	return uint128{lo, hi}
+	return uint128{lo: lo, hi: hi}
 }
 
 // addMul64 returns v + a * b.
 func addMul64_38(v uint128, a, b uint64) uint128 {
-	hi, lo := bits.Mul64(mul19(a), b*2)
+	a19 := mul19(a)
+	_, lo := bits.Mul64(a19, b*2)
 	lo, c := bits.Add64(lo, v.lo, 0)
+	hi, _ := bits.Mul64(a19, b*2)
 	hi, _ = bits.Add64(hi, v.hi, c)
-	return uint128{lo, hi}
+	return uint128{lo: lo, hi: hi}
 }
 
 // shiftRightBy51 returns a >> 51. a is assumed to be at most 115 bits.
 func shiftRightBy51(a uint128) (uint64, uint64) {
-	return (a.hi << (64 - 51)) | (a.lo >> 51), a.lo&maskLow51Bits
+	return (a.hi << (64 - 51)) | (a.lo >> 51), a.lo & maskLow51Bits
 }
 
 func feMulGeneric(v, a, b *Element) {
@@ -176,11 +181,11 @@ func feMulGeneric(v, a, b *Element) {
 	// where the carries will be small enough to fit in the wiggle room above 2⁵¹.
 
 	// manually inlined carryPropagate
-	v.l0 = rr0&maskLow51Bits + mul19(rr4 >> 51)
-	v.l1 = rr1&maskLow51Bits + rr0 >> 51
-	v.l2 = rr2&maskLow51Bits + rr1 >> 51
-	v.l3 = rr3&maskLow51Bits + rr2 >> 51
-	v.l4 = rr4&maskLow51Bits + rr3 >> 51
+	v.l0 = rr0&maskLow51Bits + mul19(rr4>>51)
+	v.l1 = rr1&maskLow51Bits + rr0>>51
+	v.l2 = rr2&maskLow51Bits + rr1>>51
+	v.l3 = rr3&maskLow51Bits + rr2>>51
+	v.l4 = rr4&maskLow51Bits + rr3>>51
 }
 
 func feSquareGeneric(v, a *Element) {
@@ -253,11 +258,12 @@ func feSquareGeneric(v, a *Element) {
 	rr4 := r4_lo + c3
 
 	// manually inlined carryPropagate
-	v.l0 = rr0&maskLow51Bits + mul19(rr4 >> 51)
-	v.l1 = rr1&maskLow51Bits + rr0 >> 51
-	v.l2 = rr2&maskLow51Bits + rr1 >> 51
-	v.l3 = rr3&maskLow51Bits + rr2 >> 51
-	v.l4 = rr4&maskLow51Bits + rr3 >> 51
+	v.l0 = rr0&maskLow51Bits + mul19(rr4>>51)
+	v.l4 = rr4&maskLow51Bits + rr3>>51
+	v.l3 = rr3&maskLow51Bits + rr2>>51
+	v.l2 = rr2&maskLow51Bits + rr1>>51
+	v.l1 = rr1&maskLow51Bits + rr0>>51
+
 }
 
 // carryPropagate brings the limbs below 52 bits by applying the reduction
@@ -266,11 +272,11 @@ func (v *Element) carryPropagate() *Element {
 	// (l4>>51) is at most 64 - 51 = 13 bits, so (l4>>51)*19 is at most 18 bits, and
 	// the final l0 will be at most 52 bits. Similarly for the rest.
 	l0 := v.l0
-	v.l0 = l0&maskLow51Bits + mul19(v.l4 >> 51)
-	v.l4 = v.l4&maskLow51Bits + v.l3 >> 51
-	v.l3 = v.l3&maskLow51Bits + v.l2 >> 51
-	v.l2 = v.l2&maskLow51Bits + v.l1 >> 51
-	v.l1 = v.l1&maskLow51Bits + l0 >> 51
+	v.l0 = l0&maskLow51Bits + mul19(v.l4>>51)
+	v.l4 = v.l4&maskLow51Bits + v.l3>>51
+	v.l3 = v.l3&maskLow51Bits + v.l2>>51
+	v.l2 = v.l2&maskLow51Bits + v.l1>>51
+	v.l1 = v.l1&maskLow51Bits + l0>>51
 
 	return v
 }
